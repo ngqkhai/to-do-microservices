@@ -1,0 +1,30 @@
+{
+  "name": "dns-server",
+  "version": "1.0.0",
+  "description": "DNS server with service discovery integration using dns2",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "dns2": "^2.1.0",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0"
+  },
+  "keywords": [
+    "dns-server",
+    "service-discovery",
+    "microservices",
+    "dns2",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT"
+} 
