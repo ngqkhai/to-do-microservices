@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { useAuth } from '../context/AuthContext';
 
+// Reuse the same styled components from Login
 const Container = styled.div`
   display: flex;
   flex-direction: column;
@@ -107,25 +108,36 @@ const SwitchLink = styled.button`
   }
 `;
 
-interface LoginProps {
-  onSwitchToRegister: () => void;
+interface RegisterProps {
+  onSwitchToLogin: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
-  const { login, isLoading, error } = useAuth();
+const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
+  const { register, isLoading, error } = useAuth();
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [formErrors, setFormErrors] = useState({
+    fullName: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
   
   const validateForm = () => {
     let valid = true;
     const errors = {
+      fullName: '',
       email: '',
-      password: ''
+      password: '',
+      confirmPassword: ''
     };
+    
+    if (!fullName.trim()) {
+      errors.fullName = 'Full name is required';
+      valid = false;
+    }
     
     if (!email.trim()) {
       errors.email = 'Email is required';
@@ -138,6 +150,17 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     if (!password) {
       errors.password = 'Password is required';
       valid = false;
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+      valid = false;
+    }
+    
+    if (!confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password';
+      valid = false;
+    } else if (password !== confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+      valid = false;
     }
     
     setFormErrors(errors);
@@ -149,7 +172,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     
     if (validateForm()) {
       try {
-        await login(email, password);
+        await register(fullName, email, password);
       } catch (err) {
         // Error is handled by the AuthContext
       }
@@ -160,13 +183,26 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
     <Container>
       <FormContainer>
         <Logo>TaskMaster</Logo>
-        <Title>Sign in to your account</Title>
+        <Title>Create your account</Title>
         
         {error && (
           <ErrorText style={{ textAlign: 'center', marginBottom: '1rem' }}>{error}</ErrorText>
         )}
         
         <form onSubmit={handleSubmit}>
+          <FormGroup>
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input
+              id="fullName"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              hasError={!!formErrors.fullName}
+              placeholder="Enter your full name"
+            />
+            {formErrors.fullName && <ErrorText>{formErrors.fullName}</ErrorText>}
+          </FormGroup>
+          
           <FormGroup>
             <Label htmlFor="email">Email</Label>
             <Input
@@ -188,20 +224,33 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               hasError={!!formErrors.password}
-              placeholder="Enter your password"
+              placeholder="Create a password"
             />
             {formErrors.password && <ErrorText>{formErrors.password}</ErrorText>}
           </FormGroup>
           
+          <FormGroup>
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              hasError={!!formErrors.confirmPassword}
+              placeholder="Confirm your password"
+            />
+            {formErrors.confirmPassword && <ErrorText>{formErrors.confirmPassword}</ErrorText>}
+          </FormGroup>
+          
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? 'Creating account...' : 'Sign Up'}
           </Button>
         </form>
         
         <SwitchText>
-          Don't have an account?
-          <SwitchLink type="button" onClick={onSwitchToRegister}>
-            Sign up
+          Already have an account?
+          <SwitchLink type="button" onClick={onSwitchToLogin}>
+            Sign in
           </SwitchLink>
         </SwitchText>
       </FormContainer>
@@ -209,4 +258,4 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
   );
 };
 
-export default Login; 
+export default Register; 

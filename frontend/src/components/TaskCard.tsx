@@ -1,145 +1,110 @@
-import React from 'react';
-import { format, isAfter, isBefore, addMinutes } from 'date-fns';
-import { Task } from '../services/api';
+import React, { useState } from 'react';
+import { Task } from '../services/taskApi';
+import { 
+  formatDueDate, 
+  formatRelativeTime, 
+  getPriorityBadgeClass, 
+  isOverdue 
+} from '../utils/taskUtils';
+import { Check, Clock, Trash, Edit, AlertTriangle } from 'lucide-react';
+import { useTasks } from '../context/TaskContext';
 
 interface TaskCardProps {
   task: Task;
-  onComplete: (id: string) => void;
   onEdit: (task: Task) => void;
-  onDelete: (id: string) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onComplete, onEdit, onDelete }) => {
-  const isOverdue = task.dueDate && isAfter(new Date(), new Date(task.dueDate));
-  const isDueToday = task.dueDate && 
-    format(new Date(task.dueDate), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit }) => {
+  const { completeTask, deleteTask } = useTasks();
+  const [isHovered, setIsHovered] = useState(false);
   
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+  const handleComplete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    completeTask(task.id);
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'pending': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+  
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteTask(task.id);
   };
-
-  const formatDueDate = (dueDate: string) => {
-    const date = new Date(dueDate);
-    return format(date, 'MMM dd, yyyy - HH:mm');
+  
+  const handleEdit = () => {
+    onEdit(task);
   };
-
+  
+  const isTaskOverdue = isOverdue(task.dueDate);
+  const isCompleted = task.status === 'completed';
+  
   return (
-    <div className={`card transition-all duration-200 hover:shadow-md ${
-      isOverdue && task.status !== 'completed' ? 'border-red-300 bg-red-50' : ''
-    } ${task.status === 'completed' ? 'opacity-75' : ''}`}>
-      
-      {/* Header with priority and status */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.priority)}`}>
-            {task.priority.toUpperCase()}
-          </span>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
-            {task.status.replace('_', ' ').toUpperCase()}
-          </span>
-        </div>
+    <div 
+      className="card mb-4 cursor-pointer"
+      onClick={handleEdit}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex items-start">
+        <button 
+          onClick={handleComplete}
+          className={`flex-shrink-0 w-6 h-6 rounded-full border ${
+            isCompleted 
+              ? 'bg-success border-success' 
+              : 'border-gray-300 hover:border-primary'
+          } flex items-center justify-center mr-3 mt-1`}
+        >
+          {isCompleted && <Check size={14} className="text-white" />}
+        </button>
         
-        {isOverdue && task.status !== 'completed' && (
-          <span className="text-red-600 text-xs font-medium">OVERDUE</span>
-        )}
-        {isDueToday && !isOverdue && task.status !== 'completed' && (
-          <span className="text-orange-600 text-xs font-medium">DUE TODAY</span>
-        )}
-      </div>
-
-      {/* Task title */}
-      <h3 className={`text-lg font-semibold text-gray-900 mb-2 ${
-        task.status === 'completed' ? 'line-through text-gray-500' : ''
-      }`}>
-        {task.title}
-      </h3>
-
-      {/* Task description */}
-      {task.description && (
-        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-          {task.description}
-        </p>
-      )}
-
-      {/* Due date and reminder info */}
-      {task.dueDate && (
-        <div className="mb-4">
-          <div className="flex items-center text-sm text-gray-500 mb-1">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Due: {formatDueDate(task.dueDate)}
-          </div>
-          {task.remindBefore && (
-            <div className="flex items-center text-sm text-gray-500">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5V9a6 6 0 10-11.31 3" />
-              </svg>
-              Reminder: {task.remindBefore} min before
+        <div className="flex-grow">
+          <div className="flex items-center justify-between">
+            <h3 className={`font-medium ${isCompleted ? 'line-through text-gray-400' : ''}`}>
+              {task.title}
+            </h3>
+            <div className="flex items-center">
+              <span className={`badge ${getPriorityBadgeClass(task.priority)} mr-2`}>
+                {task.priority}
+              </span>
+              {isHovered ? (
+                <div className="flex space-x-1">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit();
+                    }}
+                    className="p-1 rounded hover:bg-gray-100"
+                  >
+                    <Edit size={16} className="text-gray-500" />
+                  </button>
+                  <button 
+                    onClick={handleDelete}
+                    className="p-1 rounded hover:bg-gray-100"
+                  >
+                    <Trash size={16} className="text-gray-500" />
+                  </button>
+                </div>
+              ) : null}
             </div>
+          </div>
+          
+          {task.description && (
+            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+              {task.description}
+            </p>
           )}
-        </div>
-      )}
-
-      {/* Action buttons */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        {task.status !== 'completed' ? (
-          <button
-            onClick={() => onComplete(task.id)}
-            className="flex items-center space-x-1 text-green-600 hover:text-green-700 text-sm font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>Complete</span>
-          </button>
-        ) : (
-          <span className="flex items-center space-x-1 text-green-600 text-sm font-medium">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>Completed</span>
-          </span>
-        )}
-
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => onEdit(task)}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => onDelete(task.id)}
-            className="text-red-600 hover:text-red-700 text-sm font-medium"
-          >
-            Delete
-          </button>
+          
+          <div className="flex items-center mt-2 text-xs text-gray-500">
+            <div className={`flex items-center ${isTaskOverdue && !isCompleted ? 'text-danger' : ''}`}>
+              {isTaskOverdue && !isCompleted ? (
+                <AlertTriangle size={14} className="mr-1" />
+              ) : (
+                <Clock size={14} className="mr-1" />
+              )}
+              <span>{formatDueDate(task.dueDate)}</span>
+            </div>
+            <span className="mx-2">•</span>
+            <span>{formatRelativeTime(task.dueDate)}</span>
+          </div>
         </div>
       </div>
-
-      {/* Completion timestamp */}
-      {task.completedAt && (
-        <div className="mt-2 pt-2 border-t border-gray-100">
-          <span className="text-xs text-gray-500">
-            Completed on {format(new Date(task.completedAt), 'MMM dd, yyyy - HH:mm')}
-          </span>
-        </div>
-      )}
     </div>
   );
 };

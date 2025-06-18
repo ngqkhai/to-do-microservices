@@ -34,6 +34,10 @@ timeout /t 3 /nobreak >nul
 
 echo Starting API Gateway...
 start "API Gateway" cmd /k "cd /d "%~dp0gateway" && npm start"
+timeout /t 3 /nobreak >nul
+
+echo Starting Frontend...
+start "Frontend" cmd /k "cd /d "%~dp0frontend" && npm start"
 
 echo.
 echo ================================================================
@@ -48,7 +52,9 @@ echo - Task Service:        http://localhost:3002
 echo - Reminder Service:    http://localhost:3004
 echo - Notification Service: http://localhost:3005
 echo - API Gateway:         http://localhost:8080
+echo - Frontend:            http://localhost:3000
 echo.
 echo Quick test: http://localhost:8080/user-service/health
+echo Frontend: http://localhost:3000
 echo.
 pause 
