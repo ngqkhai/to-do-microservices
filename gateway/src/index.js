@@ -78,14 +78,38 @@ class APIGateway {
           stats: '/gateway/stats'
         },
         usage: {
-          authenticated: 'POST /service-name/endpoint (with Authorization header)',
-          public: 'GET /service-name/endpoint (optional Authorization header)'
+          authenticated: 'Most endpoints require Authorization header',
+          public: 'Auth endpoints (login, register, refresh) and health checks are public'
         },
+        publicEndpoints: [
+          'POST /user-service/auth/register',
+          'POST /user-service/auth/login', 
+          'POST /user-service/auth/refresh',
+          'GET /*/health'
+        ],
         timestamp: new Date().toISOString()
       });
     });
 
-    // Main proxy routes - handle all traffic with authentication
+    // Public authentication endpoints - no JWT required
+    this.app.use('/user-service/auth/register', proxyMiddleware.optionalAuthProxy());
+    this.app.use('/user-service/auth/login', proxyMiddleware.optionalAuthProxy());
+    this.app.use('/user-service/auth/refresh', proxyMiddleware.optionalAuthProxy());
+    
+    // Public health check endpoints for all services
+    this.app.use('/*/health', proxyMiddleware.optionalAuthProxy());
+    
+    // Log public endpoint access
+    this.app.use((req, res, next) => {
+      const path = req.path;
+      if (path.includes('/auth/register') || path.includes('/auth/login') || 
+          path.includes('/auth/refresh') || path.includes('/health')) {
+        console.log(`🔓 Public endpoint accessed: ${req.method} ${req.originalUrl}`);
+      }
+      next();
+    });
+
+    // Main proxy routes - handle all other traffic with authentication
     this.app.use('/*', proxyMiddleware.authenticatedProxy());
   }
 
@@ -170,10 +194,18 @@ class APIGateway {
         console.log(`Gateway info: http://localhost:${this.port}/gateway/info`);
         console.log(`Statistics: http://localhost:${this.port}/gateway/stats`);
         console.log('\n=== Ready to proxy requests ===');
-        console.log('Usage examples:');
-        console.log(`  GET http://localhost:${this.port}/user-service/health`);
+        console.log('Public endpoints (no JWT required):');
+        console.log(`  POST http://localhost:${this.port}/user-service/auth/register`);
+        console.log(`  POST http://localhost:${this.port}/user-service/auth/login`);
+        console.log(`  POST http://localhost:${this.port}/user-service/auth/refresh`);
+        console.log(`  GET  http://localhost:${this.port}/user-service/health`);
+        console.log(`  GET  http://localhost:${this.port}/task-service/health`);
+        console.log('');
+        console.log('Protected endpoints (JWT required):');
+        console.log(`  POST http://localhost:${this.port}/user-service/auth/logout`);
+        console.log(`  GET  http://localhost:${this.port}/user-service/auth/me`);
         console.log(`  POST http://localhost:${this.port}/task-service/api/tasks`);
-        console.log(`  PUT http://localhost:${this.port}/notification-service/api/settings`);
+        console.log(`  PUT  http://localhost:${this.port}/notification-service/api/settings`);
         console.log('================================\n');
       });
 

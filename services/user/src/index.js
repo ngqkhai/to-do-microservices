@@ -74,6 +74,10 @@ class AuthServiceApp {
     // Request logging middleware
     this.app.use((req, res, next) => {
       console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - IP: ${req.ip}`);
+      if (req.url.includes('/auth/login')) {
+        console.log(`🔍 Login Request Headers:`, JSON.stringify(req.headers, null, 2));
+        console.log(`🔍 Login Request Body:`, JSON.stringify(req.body, null, 2));
+      }
       next();
     });
   }

@@ -26,6 +26,7 @@ class ProxyMiddleware {
         console.log(`${req.method} ${req.originalUrl}`);
         console.log(`Headers:`, JSON.stringify(req.headers, null, 2));
         console.log(`User:`, req.user ? req.user.email || req.user.id : 'Anonymous');
+        console.log(`Body:`, req.body ? JSON.stringify(req.body, null, 2) : 'No body');
 
         // Parse service name from path (use originalUrl to get the full path)
         const fullPath = req.originalUrl.split('?')[0]; // Remove query parameters
@@ -111,9 +112,12 @@ class ProxyMiddleware {
         if (proxyResponse.data && typeof proxyResponse.data.pipe === 'function') {
           // Stream response
           proxyResponse.data.pipe(res);
-        } else {
-          // Direct response
+        } else if (proxyResponse.data !== null && proxyResponse.data !== undefined) {
+          // Direct response with data
           res.send(proxyResponse.data);
+        } else {
+          // Empty response (e.g., DELETE requests)
+          res.end();
         }
 
         this.stats.successfulRequests++;
